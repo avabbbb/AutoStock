@@ -8,9 +8,36 @@ External reasoning agents such as Codex, OMP, WorkBuddy and other MCP-capable ag
 
 > LLM proposes. Risk engine validates. Human authorizes. Broker executes.
 
-## Primary user experience
+## Core owner workflow
 
-The user should be able to start from a coding agent:
+AutoStock is optimized first for a compact owner workflow:
+
+```text
+Market Pulse
+  ↓
+Screen
+  ↓
+Agent Research
+  ↓
+Recommendation
+  ↓
+Track
+  ↓
+Review
+```
+
+1. **Market Pulse** — understand index direction, breadth, market emotion, sector strength and major events at a glance.
+2. **Screen** — run indicator/factor/natural-language screens and get a compact candidate set.
+3. **Agent Research** — let the local/external agent use AutoStock's existing data tools plus configured external APIs to research the candidates.
+4. **Recommendation** — save selected ideas into a first-class recommendation record with rating, thesis, entry zone, take-profit, stop-loss and provenance.
+5. **Track** — continuously show current price, recent trend and whether entry / take-profit / stop-loss conditions have been reached.
+6. **Review** — open any recommendation for chart, thesis, risk, model/prompt provenance and backtest/outcome review.
+
+This path is the primary UI and architecture priority. Features that do not strengthen this loop should not compete for permanent navigation.
+
+## Primary agent experience
+
+The user should also be able to start from a coding agent:
 
 1. install or discover the AutoStock Skill;
 2. let the Skill discover/start the local AutoStock runtime;
