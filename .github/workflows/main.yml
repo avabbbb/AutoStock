@@ -1,0 +1,132 @@
+name: Wails build
+
+on:
+  push:
+    tags:
+    # Match any new tag
+      - '*-release'
+      - '*-dev'
+      - '*-pre'
+
+env:
+  # Necessary for most environments as build failure can occur due to OOM issues
+  NODE_OPTIONS: "--max-old-space-size=4096"
+  OFFICIAL_STATEMENT: ${{ vars.OFFICIAL_STATEMENT }}
+  BUILD_KEY: ${{ vars.BUILD_KEY }}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+    # Failure in one platform build won't impact the others
+      fail-fast: false
+      matrix:
+        build:
+          - name: 'go-stock-windows-amd64.exe'
+            platform:  'windows/amd64'
+            os: 'windows-latest'
+          - name: 'go-stock-windows-arm64.exe'
+            platform:  'windows/arm64'
+            os: 'windows-latest'
+          - name: 'go-stock-darwin-universal'
+            platform: 'darwin/universal'
+            os: 'macos-latest'
+          - name: 'go-stock-darwin-intel'
+            platform: 'darwin/amd64'
+            os: 'macos-latest'
+          - name: 'go-stock-darwin-arm64'
+            platform: 'darwin/arm64'
+            os: 'macos-latest'
+
+    runs-on: ${{ matrix.build.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Get commit message
+        id: get_commit_message
+        # 必须 shell: bash 统一平台行为（Windows 默认 pwsh 对引号/编码处理不同）；
+        # 清洗引号/反斜杠：值会被插入 bash 双引号串与 go -ldflags 单引号包裹，
+        # 引号字符会导致注入或破坏 ldflags 分词（含空格的中文 commit message 曾致 macOS 编译失败）
+        shell: bash
+        run: |
+          MSG=$(git log -1 --pretty=format:'%s' | tr -d '"' | tr -d "'" | tr -d '\\')
+          echo "commit_message=$MSG" >> $GITHUB_OUTPUT
+
+      - name: Determine release channel
+        id: channel
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" == *-release ]]; then
+            echo "channel=release" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "channel_label=Release（稳定版）" >> $GITHUB_OUTPUT
+          elif [[ "$TAG" == *-pre ]]; then
+            echo "channel=pre" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "channel_label=Pre-release（预发布版）" >> $GITHUB_OUTPUT
+          elif [[ "$TAG" == *-dev ]]; then
+            echo "channel=dev" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "channel_label=Dev（开发版）" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build wails x go-stock
+        uses: ArvinLovegood/wails-build-action@v3.9
+        id: build
+        with:
+          build-name: ${{ matrix.build.name }}
+          build-platform: ${{ matrix.build.platform }}
+          package: true
+          go-version: '1.27'
+          build-tags: ${{ github.ref_name }}
+          build-commit-message: ${{ steps.get_commit_message.outputs.commit_message }}
+          build-statement: ${{ env.OFFICIAL_STATEMENT }}
+          build-key: ${{ env.BUILD_KEY }}
+          node-version: '22.22.2'
+          wails-version: 'v2.15.0'
+          nsis: 'true'
+
+      - name: Update release for channel
+        if: steps.channel.outputs.channel != 'release'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = '${{ github.ref_name }}';
+            const channel = '${{ steps.channel.outputs.channel }}';
+            const channelLabel = '${{ steps.channel.outputs.channel_label }}';
+            const prerelease = '${{ steps.channel.outputs.prerelease }}' === 'true';
+
+            const { data: releases } = await github.rest.repos.listReleases({ owner, repo });
+            const release = releases.find(r => r.tag_name === tag);
+
+            if (release) {
+              const updateParams = {
+                owner,
+                repo,
+                release_id: release.id,
+                prerelease: prerelease,
+                make_latest: 'false'
+              };
+
+              let channelNotice = '';
+              if (channel === 'dev') {
+                channelNotice = '\n\n---\n> ⚠️ **' + channelLabel + '** - 此版本为开发版，可能存在不稳定功能，仅供测试使用。';
+              } else if (channel === 'pre') {
+                channelNotice = '\n\n---\n> 🔄 **' + channelLabel + '** - 此版本为预发布版，欢迎体验新功能并反馈问题。';
+              }
+              if (channelNotice) {
+                updateParams.body = (release.body || '') + channelNotice;
+              }
+
+              await github.rest.repos.updateRelease(updateParams);
+              core.info(`Updated release ${tag}: prerelease=${prerelease}, channel=${channel}`);
+            } else {
+              core.warning(`Release not found for tag ${tag}`);
+            }
