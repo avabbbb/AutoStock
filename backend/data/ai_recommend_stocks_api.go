@@ -29,7 +29,7 @@ const (
 	recommendTrackingStopLossReached   = "stop_loss_reached"
 )
 
-var recommendationPriceNumberRE = regexp.MustCompile(`\d+(?:\.\d+)?`)
+var recommendationPriceNumberRE = regexp.MustCompile(`[0-9]+(\.[0-9]+)?`)
 
 func parseRecommendationPrices(value string) []float64 {
 	matches := recommendationPriceNumberRE.FindAllString(strings.ReplaceAll(value, ",", ""), -1)
