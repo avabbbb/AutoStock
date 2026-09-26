@@ -29,8 +29,7 @@ import {
   StatsChartOutline,
   Wallet, WarningOutline, TimeOutline, SearchOutline, BookmarkOutline,
 } from '@vicons/ionicons5'
-import {AnalyzeSentiment, GetConfig, GetEffectiveSponsorVip, GetGroupList, GetVersionInfo, IsTradingTime, IsHKTradingTime, IsUSTradingTime} from "../wailsjs/go/main/App";
-import FloatingAiAssistant from "./components/FloatingAiAssistant.vue";
+import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo, IsTradingTime, IsHKTradingTime, IsUSTradingTime} from "../wailsjs/go/main/App";
 import FloatingAgentAssistant from "./components/FloatingAgentAssistant.vue";
 import SignalMonitorPanel from "./components/SignalMonitorPanel.vue";
 import {Dragon, Fire, FirefoxBrowser, Gripfire, Robot} from "@vicons/fa";
@@ -154,39 +153,11 @@ function updateMarketStatus() {
     parts.push(hk ? '港股交易中' : '港股休市')
     parts.push(us ? '美股交易中' : '美股休市')
     marketStatus.value = parts.join(' | ')
-    WindowSetTitle("go-stock " + marketStatus.value + " " + officialStatement.value + "  「" + currentMotto.value + "」  [数据来源于网络，仅供参考；投资有风险，入市需谨慎]")
+    WindowSetTitle("AutoStock " + marketStatus.value + " " + officialStatement.value + "  「" + currentMotto.value + "」  [数据来源于网络，仅供参考；投资有风险，入市需谨慎]")
   })
 }
 
-/** 用于功能权限：仅在赞助有效期内为解密等级，否则为 0（与 EffectiveSponsorVipLevel 一致） */
-const vipLevel = ref(0)
-let discreteMessage = null
-function getDiscreteMessage() {
-  if (!discreteMessage) {
-    discreteMessage = createDiscreteApi(['message'], {
-      configProviderProps: {
-        theme: enableDarkTheme.value ? darkTheme : lightTheme,
-      },
-    })
-  }
-  return discreteMessage.message
-}
-async function refreshEffectiveVip() {
-  try {
-    const r = await GetEffectiveSponsorVip()
-    const active = !!r?.active
-    const lvl = Number(r?.vipLevel ?? 0)
-    vipLevel.value = active && !Number.isNaN(lvl) ? lvl : 0
-  } catch (_) {
-    vipLevel.value = 0
-  }
-}
-async function handleKlineAnalysisClick() {
-  await refreshEffectiveVip()
-  if (vipLevel.value < 2) {
-    getDiscreteMessage().warning('K线分析功能需要 VIP2 及以上赞助用户才能使用，请升级后体验')
-    return
-  }
+function handleKlineAnalysisClick() {
   activeKey.value = 'klineAnalysis'
   router.push({ name: 'klineAnalysis' })
 }
@@ -1597,7 +1568,7 @@ onMounted(() => {
       downloadNotification = notification.create({
         title: () => '正在下载新版本 ' + downloadState.value.version,
         content: renderDownloadContent,
-        meta: () => h(NText, { type: 'warning' }, { default: () => 'go-stock' }),
+        meta: () => h(NText, { type: 'warning' }, { default: () => 'AutoStock' }),
         duration: 0,
       })
     })
@@ -1682,7 +1653,6 @@ onMounted(() => {
                 :y-offset="150"
                 :rotate="-15"
             >
-<!--              <FloatingAiAssistant />-->
               <FloatingAgentAssistant />
               <SignalMonitorPanel />
               <n-flex>
