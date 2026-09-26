@@ -385,7 +385,7 @@ onMounted(() => {
     refreshMotto()
     updateMarketStatus()
   }, 60000)
-  contentStyle.value = "max-height: calc(92vh);overflow: hidden"
+  contentStyle.value = "height: 100vh; overflow: hidden"
   GetConfig().then((res) => {
     if (res.enableNews) {
       enableNews.value = true
@@ -563,40 +563,51 @@ onMounted(() => {
                 :y-offset="150"
                 :rotate="-15"
             >
-              <FloatingAgentAssistant />
-              <SignalMonitorPanel />
-              <n-flex>
-                <n-grid x-gap="12" :cols="1">
-                  <n-gi>
-                    <n-spin :show="loading">
-                      <template #description>
-                        {{ loadingMsg }}
-                      </template>
-                      <n-marquee :speed="100" style="position: relative;top:0;z-index: 19;width: 100%"
-                                 v-if="(telegraph.length>0)&&(enableNews)">
-                        <n-tag type="warning" v-for="item in telegraph" style="margin-right: 10px">
-                          {{ item }}
-                        </n-tag>
-                      </n-marquee>
-                      <n-scrollbar :style="contentStyle">
-                        <n-skeleton v-if="loading" height="calc(100vh)" />
+              <div class="autostock-shell">
+                <aside class="autostock-sidebar">
+                  <div class="autostock-brand">
+                    <div class="autostock-mark">A</div>
+                    <div>
+                      <div class="autostock-brand-name">AutoStock</div>
+                      <div class="autostock-brand-subtitle">Agentic market workspace</div>
+                    </div>
+                  </div>
+
+                  <div class="autostock-nav-label">Workspace</div>
+                  <n-menu
+                      class="autostock-nav"
+                      v-model:value="activeKey"
+                      mode="vertical"
+                      :options="menuOptions"
+                      :indent="14"
+                      :root-indent="10"
+                      :dropdown-props="{ menuProps: () => ({ style: 'max-height: 60vh; overflow-y: auto;' }) }"
+                  />
+                  <div class="autostock-sidebar-note">Local-first · Agent-driven</div>
+                </aside>
+
+                <main class="autostock-main">
+                  <FloatingAgentAssistant />
+                  <SignalMonitorPanel />
+                  <n-spin :show="loading">
+                    <template #description>
+                      {{ loadingMsg }}
+                    </template>
+                    <n-marquee class="autostock-news-strip" :speed="100"
+                               v-if="(telegraph.length>0)&&(enableNews)">
+                      <n-tag type="warning" v-for="item in telegraph" style="margin-right: 8px">
+                        {{ item }}
+                      </n-tag>
+                    </n-marquee>
+                    <n-scrollbar :style="contentStyle">
+                      <n-skeleton v-if="loading" height="calc(100vh)" />
+                      <div class="autostock-workspace">
                         <RouterView/>
-                      </n-scrollbar>
-                    </n-spin>
-                  </n-gi>
-                  <n-gi style="position: fixed;bottom:0;z-index: 9;width: 100%;">
-                    <n-card size="small" style="--wails-draggable:no-drag">
-                      <n-menu style="font-size: 18px;"
-                              v-model:value="activeKey"
-                              mode="horizontal"
-                              :options="menuOptions"
-                              :dropdown-props="{ menuProps: () => ({ style: 'max-height: 60vh; overflow-y: auto;' }) }"
-                              responsive
-                      />
-                    </n-card>
-                  </n-gi>
-                </n-grid>
-              </n-flex>
+                      </div>
+                    </n-scrollbar>
+                  </n-spin>
+                </main>
+              </div>
             </n-watermark>
           </n-dialog-provider>
         </n-modal-provider>
