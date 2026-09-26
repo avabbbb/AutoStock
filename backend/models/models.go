@@ -1165,6 +1165,15 @@ type AiRecommendStocks struct {
 	SysPromptId                 int        `json:"sysPromptId" gorm:"index;default:0" md:"系统提示词模板ID"`
 	SkillId                     string     `json:"skillId" gorm:"size:255;index;default:''" md:"技能ID(目录名,逗号分隔)"`
 	EnableAlert                 bool       `json:"enableAlert" gorm:"default:false" md:"开启预警"`
+
+	// Derived tracking fields are computed from live price + recommendation targets.
+	// They are API-only state and are never persisted.
+	TrackingState               string     `json:"trackingState" gorm:"-" md:"-"`
+	TrackingLabel               string     `json:"trackingLabel" gorm:"-" md:"-"`
+	HasTakeProfitTarget         bool       `json:"hasTakeProfitTarget" gorm:"-" md:"-"`
+	HasStopLossTarget           bool       `json:"hasStopLossTarget" gorm:"-" md:"-"`
+	TakeProfitDistancePct       float64    `json:"takeProfitDistancePct" gorm:"-" md:"-"`
+	StopLossDistancePct         float64    `json:"stopLossDistancePct" gorm:"-" md:"-"`
 }
 
 type AiRecommendStocksMdExport struct {

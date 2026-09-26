@@ -4,7 +4,9 @@ package data
 import (
 	"go-stock/backend/db"
 	"go-stock/backend/models"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +19,115 @@ type AiRecommendStocksService struct{}
 
 func NewAiRecommendStocksService() *AiRecommendStocksService {
 	return &AiRecommendStocksService{}
+}
+
+const (
+	recommendTrackingWatching          = "watching"
+	recommendTrackingEntryReached      = "entry_reached"
+	recommendTrackingTracking          = "tracking"
+	recommendTrackingTakeProfitReached = "take_profit_reached"
+	recommendTrackingStopLossReached   = "stop_loss_reached"
+)
+
+var recommendationPriceNumberRE = regexp.MustCompile(`[0-9]+(\.[0-9]+)?`)
+
+func parseRecommendationPrices(value string) []float64 {
+	matches := recommendationPriceNumberRE.FindAllString(strings.ReplaceAll(value, ",", ""), -1)
+	prices := make([]float64, 0, len(matches))
+	for _, match := range matches {
+		price, err := strconv.ParseFloat(match, 64)
+		if err == nil && price > 0 {
+			prices = append(prices, price)
+		}
+	}
+	return prices
+}
+
+func recommendationEntryRange(item *models.AiRecommendStocks) (float64, float64, bool) {
+	minPrice, maxPrice := item.RecommendBuyPriceMin, item.RecommendBuyPriceMax
+	if minPrice > 0 && maxPrice > 0 {
+		if minPrice > maxPrice {
+			minPrice, maxPrice = maxPrice, minPrice
+		}
+		return minPrice, maxPrice, true
+	}
+
+	prices := parseRecommendationPrices(item.RecommendBuyPrice)
+	if len(prices) == 0 {
+		return 0, 0, false
+	}
+	if len(prices) == 1 {
+		return prices[0], prices[0], true
+	}
+	minPrice, maxPrice = prices[0], prices[1]
+	if minPrice > maxPrice {
+		minPrice, maxPrice = maxPrice, minPrice
+	}
+	return minPrice, maxPrice, true
+}
+
+func recommendationTakeProfit(item *models.AiRecommendStocks) (float64, bool) {
+	if item.RecommendStopProfitPriceMin > 0 {
+		return item.RecommendStopProfitPriceMin, true
+	}
+	prices := parseRecommendationPrices(item.RecommendStopProfitPrice)
+	if len(prices) == 0 {
+		return 0, false
+	}
+	return prices[0], true
+}
+
+func recommendationStopLoss(item *models.AiRecommendStocks) (float64, bool) {
+	prices := parseRecommendationPrices(item.RecommendStopLossPrice)
+	if len(prices) == 0 {
+		return 0, false
+	}
+	return prices[0], true
+}
+
+func applyRecommendationTracking(item *models.AiRecommendStocks) {
+	if item == nil {
+		return
+	}
+
+	current, err := strconv.ParseFloat(strings.TrimSpace(item.StockCurrentPrice), 64)
+	if err != nil || current <= 0 {
+		item.TrackingState = recommendTrackingWatching
+		item.TrackingLabel = "观察中"
+		return
+	}
+
+	entryMin, entryMax, hasEntry := recommendationEntryRange(item)
+	takeProfit, hasTakeProfit := recommendationTakeProfit(item)
+	stopLoss, hasStopLoss := recommendationStopLoss(item)
+
+	item.HasTakeProfitTarget = hasTakeProfit
+	item.HasStopLossTarget = hasStopLoss
+
+	if hasTakeProfit {
+		item.TakeProfitDistancePct = (takeProfit - current) / current * 100
+	}
+	if hasStopLoss {
+		item.StopLossDistancePct = (stopLoss - current) / current * 100
+	}
+
+	switch {
+	case hasStopLoss && current <= stopLoss:
+		item.TrackingState = recommendTrackingStopLossReached
+		item.TrackingLabel = "已到止损"
+	case hasTakeProfit && current >= takeProfit:
+		item.TrackingState = recommendTrackingTakeProfitReached
+		item.TrackingLabel = "已到止盈"
+	case hasEntry && current >= entryMin && current <= entryMax:
+		item.TrackingState = recommendTrackingEntryReached
+		item.TrackingLabel = "到达买入区"
+	case hasEntry && current > entryMax:
+		item.TrackingState = recommendTrackingTracking
+		item.TrackingLabel = "跟踪中"
+	default:
+		item.TrackingState = recommendTrackingWatching
+		item.TrackingLabel = "等待入场"
+	}
 }
 
 // CreateAiRecommendStocks 创建AI推荐股票记录
@@ -129,6 +240,9 @@ func (s *AiRecommendStocksService) GetAiRecommendStocksList(query *models.AiReco
 				list[idx].StockCurrentPriceTime = info.Date + " " + info.Time
 			}
 		}
+	}
+	for idx := range list {
+		applyRecommendationTracking(&list[idx])
 	}
 
 	return &models.AiRecommendStocksPageData{
