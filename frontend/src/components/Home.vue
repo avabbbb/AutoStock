@@ -61,16 +61,16 @@ function refreshTelegraph() {
 </script>
 
 <template>
-  <n-card size="small" style="--wails-draggable:no-drag">
-    <template #header>
-      <n-flex align="center" :wrap="false">
-        <n-text strong>首页</n-text>
-        <n-text depth="3" style="font-size: 12px;">市场总览 · 炒作题材 · 财联社电报</n-text>
-        <n-tag :bordered="false" type="info">{{ timeText }}</n-tag>
-      </n-flex>
-    </template>
+  <section class="market-pulse" style="--wails-draggable:no-drag">
+    <header class="page-header">
+      <div>
+        <h1>Market</h1>
+        <p>大盘走势、市场情绪与关键事件</p>
+      </div>
+      <n-text depth="3" class="market-clock">{{ timeText }}</n-text>
+    </header>
 
-    <n-flex vertical :size="12">
+    <n-flex vertical :size="10">
       <!-- 大盘分析：全球股指跑马灯 + 市场情绪 + 涨跌停/分时/融资融券走势 -->
       <AnalyzeMartket :dark-theme="darkTheme" :chart-height="280"/>
 
@@ -87,10 +87,42 @@ function refreshTelegraph() {
         </div>
       </n-flex>
     </n-flex>
-  </n-card>
+  </section>
 </template>
 
 <style scoped>
+.market-pulse {
+  width: 100%;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 2px 12px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.16);
+  margin-bottom: 12px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 650;
+}
+
+.page-header p {
+  margin: 2px 0 0;
+  color: rgba(128, 128, 128, 0.9);
+  font-size: 12px;
+}
+
+.market-clock {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 :deep(.thin-scroll) {
   scrollbar-width: none;
 }
