@@ -1,7 +1,7 @@
 {
-  "name": "go-stock",
-  "version": "1.0.0",
-  "description": "",
+  "name": "autostock",
+  "version": "0.1.0",
+  "description": "Agent-first local market research, screening and recommendation tracking workbench.",
   "main": "",
   "scripts": {
     "dev": "vite",
@@ -54,8 +54,10 @@
     "vite": "7.3.3"
   },
   "keywords": [
-    "AI赋能股票分析",
-    "go-stock"
+    "autostock",
+    "agentic trading",
+    "market research",
+    "stock screening"
   ],
-  "author": "spark"
+  "author": "avabbbb"
 }
