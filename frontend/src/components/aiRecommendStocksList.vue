@@ -69,6 +69,20 @@ const loadingRef = ref(true)
 // RecommendStopLossPrice   string     `json:"recommendStopLossPrice" md:"ai建议止损价"`
 // RiskRemarks              string     `json:"riskRemarks" md:"风险提示"`
 // Remarks                  string     `json:"remarks" md:"备注"`
+function trackingTagType(state) {
+  if (state === 'take_profit_reached') return 'success'
+  if (state === 'stop_loss_reached') return 'error'
+  if (state === 'entry_reached') return 'warning'
+  if (state === 'tracking') return 'info'
+  return 'default'
+}
+
+function formatTrackingDistance(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '-'
+  return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
+}
+
 const columnsRef = ref([
   {
     title: '推荐模型',
@@ -127,6 +141,30 @@ const columnsRef = ref([
       } else {
         return [h(NText, { type: "error" , bordered: false}, { default: () => row.stockCurrentPrice+` |  ${diff}%` })]
       }
+    }
+  },
+  {
+    title: '状态',
+    key: 'trackingState',
+    minWidth: 150,
+    render(row) {
+      const details = []
+      if (row.hasTakeProfitTarget) {
+        details.push('TP ' + formatTrackingDistance(row.takeProfitDistancePct))
+      }
+      if (row.hasStopLossTarget) {
+        details.push('SL ' + formatTrackingDistance(row.stopLossDistancePct))
+      }
+      return h('div', { style: 'display:flex;flex-direction:column;gap:3px;align-items:flex-start;' }, [
+        h(NTag, {
+          size: 'tiny',
+          bordered: false,
+          type: trackingTagType(row.trackingState)
+        }, { default: () => row.trackingLabel || '观察中' }),
+        details.length
+          ? h(NText, { depth: 3, style: 'font-size:11px;white-space:nowrap;' }, { default: () => details.join(' · ') })
+          : null,
+      ])
     }
   },
   {
