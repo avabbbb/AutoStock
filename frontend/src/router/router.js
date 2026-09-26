@@ -17,9 +17,15 @@ import dailyReview from "../components/DailyReview.vue"
 import morningStrategy from "../components/MorningStrategy.vue"
 import promptBacktest from "../components/PromptBacktest.vue"
 import recommendBacktestStats from "../components/RecommendBacktestStats.vue"
+import SelectStock from "../components/SelectStock.vue"
+import AiRecommendStocksList from "../components/aiRecommendStocksList.vue"
 
 const routes = [
-    { path: '/', redirect: '/home'},
+    { path: '/', redirect: '/market-pulse'},
+    { path: '/market-pulse', component: homeView, name: 'marketPulse' },
+    { path: '/screener', component: SelectStock, name: 'screener' },
+    { path: '/agent-research', component: agentChat, name: 'agentResearch' },
+    { path: '/picks', component: AiRecommendStocksList, name: 'picks' },
     { path: '/home', component: homeView,name: 'home'},
     { path: '/stock', component: stockView,name: 'stock'},
     { path: '/fund', component: fundView,name: 'fund' },
